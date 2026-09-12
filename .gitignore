@@ -5,3 +5,5 @@ venv/
 backend/data/quantumfleet.db
 .DS_Store
 *.log
+
+backend/data/
