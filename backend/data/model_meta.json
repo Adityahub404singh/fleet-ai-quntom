@@ -1,0 +1,25 @@
+{
+  "mae": 3.7290020531177515,
+  "r2": 0.9858822432285397,
+  "residual_std": 5.890090745176823,
+  "feature_importance_pct": {
+    "speed_knots": 65.9,
+    "cargo_ratio": 4.1,
+    "distance_nm": 0.3,
+    "capacity_tons": 4.3,
+    "weather_condition": 18.0,
+    "fuel_type": 5.0,
+    "vessel_name": 2.4
+  },
+  "numeric_features": [
+    "speed_knots",
+    "cargo_ratio",
+    "distance_nm",
+    "capacity_tons"
+  ],
+  "categorical_features": [
+    "weather_condition",
+    "fuel_type",
+    "vessel_name"
+  ]
+}

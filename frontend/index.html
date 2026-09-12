@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>QuantumFleet AI</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --navy:#0b1f3a; --navy2:#123a63; --accent:#00c2b8; --accent2:#ffb703;
+    --bg:#f4f7fb; --card:#ffffff; --text:#0b1f3a; --muted:#5b6b82; --danger:#e15554; --good:#1fa774;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);}
+  header{background:linear-gradient(120deg,var(--navy),var(--navy2));color:#fff;padding:18px 28px;display:flex;justify-content:space-between;align-items:center;}
+  header h1{margin:0;font-size:22px;letter-spacing:.5px;}
+  header h1 span{color:var(--accent);}
+  nav{display:flex;gap:6px;padding:10px 20px;background:#fff;border-bottom:1px solid #e2e8f0;flex-wrap:wrap;position:sticky;top:0;z-index:10;}
+  nav button{background:none;border:none;padding:9px 14px;border-radius:8px;cursor:pointer;font-size:14px;color:var(--muted);font-weight:600;}
+  nav button.active{background:var(--navy);color:#fff;}
+  main{padding:24px;max-width:1200px;margin:0 auto;}
+  .page{display:none;} .page.active{display:block;animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;}
+  .card{background:var(--card);border-radius:14px;padding:18px 20px;box-shadow:0 2px 10px rgba(11,31,58,.06);}
+  .kpi .label{font-size:13px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
+  .kpi .value{font-size:28px;font-weight:700;margin-top:6px;color:var(--navy);}
+  h2{color:var(--navy);margin-top:0;}
+  .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;}
+  label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:4px;}
+  input,select{width:100%;padding:9px 10px;border:1px solid #d6dee8;border-radius:8px;font-size:14px;}
+  button.primary{background:var(--accent);border:none;color:#fff;font-weight:700;padding:11px 22px;border-radius:9px;cursor:pointer;font-size:14px;margin-top:16px;}
+  button.primary:hover{opacity:.9;}
+  table{width:100%;border-collapse:collapse;margin-top:10px;}
+  th,td{padding:10px 12px;text-align:left;border-bottom:1px solid #eef1f6;font-size:14px;}
+  th{color:var(--muted);font-size:12px;text-transform:uppercase;}
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;}
+  .badge.good{background:#e4f8f0;color:var(--good);}
+  .badge.bad{background:#fdeaea;color:var(--danger);}
+  .pill{padding:2px 8px;background:#eef3fb;border-radius:6px;font-size:12px;color:var(--navy2);font-weight:600;}
+  .reco{background:linear-gradient(120deg,#0b1f3a,#123a63);color:#fff;border-radius:14px;padding:20px;margin-top:16px;}
+  .reco h3{margin-top:0;color:var(--accent);}
+  .reco ul{margin:8px 0 0 18px;padding:0;}
+  .bar-row{display:flex;align-items:center;gap:10px;margin:8px 0;}
+  .bar-track{flex:1;background:#eef1f6;border-radius:6px;height:14px;overflow:hidden;}
+  .bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--navy2));}
+  .muted{color:var(--muted);font-size:13px;}
+  .status-dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:6px;}
+  .note{background:#fff8e6;border-left:4px solid var(--accent2);padding:10px 14px;border-radius:8px;font-size:13px;color:#6b5300;margin-top:14px;}
+  .slider-val{font-weight:700;color:var(--navy2);}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🚢 Quantum<span>Fleet</span> AI</h1>
+  <div class="muted" style="color:#cfe0f5;">SIH Prototype — Fuel Prediction &amp; Green Fleet Optimization</div>
+</header>
+
+<nav id="nav"></nav>
+
+<main>
+
+  <!-- OVERVIEW -->
+  <section class="page active" id="page-overview">
+    <h2>Fleet Overview</h2>
+    <div class="grid" id="overview-kpis"></div>
+    <div class="card" style="margin-top:18px;">
+      <h3>Vessel Status</h3>
+      <table id="overview-table"><thead><tr><th>Vessel</th><th>Type</th><th>Capacity (t)</th><th>Fuel</th><th>Status</th></tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <!-- VESSELS -->
+  <section class="page" id="page-vessels">
+    <h2>Vessel Management</h2>
+    <div class="grid" id="vessel-cards"></div>
+  </section>
+
+  <!-- PREDICT -->
+  <section class="page" id="page-predict">
+    <h2>AI Fuel Prediction</h2>
+    <div class="card">
+      <div class="form-grid">
+        <div><label>Vessel</label><select id="p-vessel"></select></div>
+        <div><label>Cargo Weight (tons)</label><input id="p-cargo" type="number" value="4000"></div>
+        <div><label>Speed (knots)</label><input id="p-speed" type="number" value="14"></div>
+        <div><label>Distance (nm)</label><input id="p-distance" type="number" value="780"></div>
+        <div><label>Weather</label><select id="p-weather"><option>Calm</option><option selected>Moderate</option><option>Rough</option></select></div>
+        <div><label>Fuel Type</label><select id="p-fuel"><option>Fuel A</option><option>Fuel B</option><option>Green Fuel</option></select></div>
+      </div>
+      <button class="primary" onclick="doPredict()">⚡ Predict Fuel</button>
+    </div>
+    <div id="predict-result"></div>
+  </section>
+
+  <!-- OPTIMIZE -->
+  <section class="page" id="page-optimize">
+    <h2>Fleet Optimization</h2>
+    <div class="card">
+      <div class="form-grid">
+        <div><label>Vessel</label><select id="o-vessel"></select></div>
+        <div><label>Cargo Weight (tons)</label><input id="o-cargo" type="number" value="4000"></div>
+        <div><label>Distance (nm)</label><input id="o-distance" type="number" value="780"></div>
+        <div><label>Weather</label><select id="o-weather"><option>Calm</option><option selected>Moderate</option><option>Rough</option></select></div>
+        <div><label>Current Fuel Type</label><select id="o-fuel"><option>Fuel A</option><option>Fuel B</option><option>Green Fuel</option></select></div>
+        <div><label>Current Speed (knots)</label><input id="o-speed" type="number" value="18"></div>
+        <div><label>Deadline (days)</label><input id="o-deadline" type="number" value="3"></div>
+      </div>
+      <button class="primary" onclick="doOptimize()">🧠 Optimize Fleet</button>
+    </div>
+    <div id="optimize-result"></div>
+  </section>
+
+  <!-- SCENARIO -->
+  <section class="page" id="page-scenario">
+    <h2>Scenario Simulator — What If?</h2>
+    <div class="card">
+      <p class="muted">Uses the last Optimize inputs as baseline. Run Optimize once first.</p>
+      <div class="form-grid">
+        <div><label>Fuel price change: <span class="slider-val" id="fp-val">0%</span></label>
+          <input id="s-fuelprice" type="range" min="-30" max="60" value="0" oninput="document.getElementById('fp-val').innerText=this.value+'%'"></div>
+        <div><label>Cargo change: <span class="slider-val" id="cg-val">0%</span></label>
+          <input id="s-cargo" type="range" min="-30" max="30" value="0" oninput="document.getElementById('cg-val').innerText=this.value+'%'"></div>
+        <div><label>Override speed (knots, optional)</label><input id="s-speed" type="number" placeholder="leave blank = no change"></div>
+      </div>
+      <button class="primary" onclick="doScenario()">🔁 Recalculate</button>
+    </div>
+    <div id="scenario-result"></div>
+  </section>
+
+</main>
+
+<script>
+const API = "http://127.0.0.1:8000";
+const pages = ["overview","vessels","predict","optimize","scenario"];
+const labels = {overview:"Overview", vessels:"Vessels", predict:"Predict Fuel", optimize:"Optimize", scenario:"Scenario Simulator"};
+const nav = document.getElementById("nav");
+pages.forEach((p,i)=>{
+  const b = document.createElement("button");
+  b.innerText = labels[p]; b.onclick = ()=>showPage(p);
+  if(i===0) b.classList.add("active");
+  b.id = "nav-"+p;
+  nav.appendChild(b);
+});
+function showPage(p){
+  pages.forEach(x=>{
+    document.getElementById("page-"+x).classList.toggle("active", x===p);
+    document.getElementById("nav-"+x).classList.toggle("active", x===p);
+  });
+}
+
+let vessels = [];
+let lastOptimizeInput = null;
+
+async function loadVessels(){
+  const res = await fetch(`${API}/api/vessels`);
+  vessels = await res.json();
+
+  // overview
+  const kpis = document.getElementById("overview-kpis");
+  kpis.innerHTML = `
+    <div class="card kpi"><div class="label">Total Vessels</div><div class="value">${vessels.length}</div></div>
+    <div class="card kpi"><div class="label">Active</div><div class="value">${vessels.filter(v=>v.status==='Active').length}</div></div>
+    <div class="card kpi"><div class="label">Available</div><div class="value">${vessels.filter(v=>v.status==='Available').length}</div></div>
+    <div class="card kpi"><div class="label">In Maintenance</div><div class="value">${vessels.filter(v=>v.status==='Maintenance').length}</div></div>
+  `;
+  const tbody = document.querySelector("#overview-table tbody");
+  tbody.innerHTML = vessels.map(v=>`<tr><td>${v.name}</td><td>${v.type}</td><td>${v.capacity_tons.toLocaleString()}</td><td>${v.fuel_type}</td><td>${statusBadge(v.status)}</td></tr>`).join("");
+
+  // vessel cards
+  document.getElementById("vessel-cards").innerHTML = vessels.map(v=>`
+    <div class="card">
+      <h3>${v.name}</h3>
+      <p class="muted">${v.type} · ${v.engine_type}</p>
+      <p>Capacity: <b>${v.capacity_tons.toLocaleString()} t</b></p>
+      <p>Fuel: <span class="pill">${v.fuel_type}</span></p>
+      <p>${statusBadge(v.status)}</p>
+    </div>
+  `).join("");
+
+  // dropdowns
+  ["p-vessel","o-vessel"].forEach(id=>{
+    const sel = document.getElementById(id);
+    sel.innerHTML = vessels.map(v=>`<option value="${v.name}" data-cap="${v.capacity_tons}">${v.name} (${v.capacity_tons}t)</option>`).join("");
+  });
+}
+
+function statusBadge(s){
+  const cls = s==='Active' ? 'good' : (s==='Maintenance' ? 'bad' : 'good');
+  const dotColor = s==='Active' ? '#1fa774' : (s==='Maintenance' ? '#e15554' : '#00c2b8');
+  return `<span class="status-dot" style="background:${dotColor}"></span>${s}`;
+}
+
+function currentCapacity(selectId){
+  const sel = document.getElementById(selectId);
+  const opt = sel.options[sel.selectedIndex];
+  return parseFloat(opt.dataset.cap);
+}
+
+async function doPredict(){
+  const body = {
+    vessel_name: document.getElementById("p-vessel").value,
+    capacity_tons: currentCapacity("p-vessel"),
+    speed_knots: parseFloat(document.getElementById("p-speed").value),
+    cargo_weight_tons: parseFloat(document.getElementById("p-cargo").value),
+    distance_nm: parseFloat(document.getElementById("p-distance").value),
+    weather_condition: document.getElementById("p-weather").value,
+    fuel_type: document.getElementById("p-fuel").value,
+  };
+  const res = await fetch(`${API}/api/predict-fuel`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
+  const d = await res.json();
+  const fi = d.feature_importance_pct;
+  const barRows = Object.entries(fi).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`
+    <div class="bar-row"><div style="width:130px;font-size:13px;">${k.replace('_',' ')}</div>
+    <div class="bar-track"><div class="bar-fill" style="width:${v}%"></div></div>
+    <div style="width:45px;text-align:right;font-size:13px;">${v}%</div></div>
+  `).join("");
+  document.getElementById("predict-result").innerHTML = `
+    <div class="grid" style="margin-top:18px;">
+      <div class="card kpi"><div class="label">Expected Fuel / Day</div><div class="value">${d.fuel_per_day_tons} t</div></div>
+      <div class="card kpi"><div class="label">Confidence Range</div><div class="value" style="font-size:20px;">${d.confidence_low}–${d.confidence_high} t</div></div>
+      <div class="card kpi"><div class="label">Voyage Duration</div><div class="value">${d.duration_days} d</div></div>
+      <div class="card kpi"><div class="label">Total Trip Fuel</div><div class="value">${d.total_trip_fuel_tons} t</div></div>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <h3>Why this prediction? (Explainable AI)</h3>
+      ${barRows}
+      <p class="muted" style="margin-top:10px;">Speed is typically the dominant driver — fuel burn scales roughly with the cube of speed, so small speed increases cause disproportionately higher fuel demand.</p>
+    </div>
+  `;
+}
+
+async function doOptimize(){
+  const body = {
+    vessel_name: document.getElementById("o-vessel").value,
+    capacity_tons: currentCapacity("o-vessel"),
+    cargo_weight_tons: parseFloat(document.getElementById("o-cargo").value),
+    distance_nm: parseFloat(document.getElementById("o-distance").value),
+    weather_condition: document.getElementById("o-weather").value,
+    fuel_type: document.getElementById("o-fuel").value,
+    current_speed_knots: parseFloat(document.getElementById("o-speed").value),
+    deadline_days: parseFloat(document.getElementById("o-deadline").value),
+  };
+  lastOptimizeInput = body;
+  const res = await fetch(`${API}/api/optimize`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
+  const d = await res.json();
+
+  const rows = ["current","classical","quantum_inspired"].map(k=>{
+    const p = d[k];
+    if(!p || p.status==="infeasible") return `<tr><td>${k}</td><td colspan="6">No feasible plan found</td></tr>`;
+    const highlight = k===d.recommended.algorithm ? 'style="background:#eafaf3;"' : '';
+    return `<tr ${highlight}>
+      <td><b>${k.replace('_',' ')}</b></td>
+      <td>${p.speed_knots} kn</td>
+      <td>${p.fuel_type}</td>
+      <td>${p.fuel_tons} t</td>
+      <td>₹${p.cost.toLocaleString()}</td>
+      <td>${p.emissions_tons} t</td>
+      <td>${p.schedule_met ? '<span class="badge good">On time</span>' : '<span class="badge bad">Late</span>'}</td>
+      <td class="muted">${p.runtime_seconds}s</td>
+    </tr>`;
+  }).join("");
+
+  document.getElementById("optimize-result").innerHTML = `
+    <div class="card" style="margin-top:18px;">
+      <h3>Current vs Classical vs Quantum-Inspired</h3>
+      <table>
+        <thead><tr><th>Plan</th><th>Speed</th><th>Fuel Type</th><th>Fuel</th><th>Cost</th><th>Emissions</th><th>Schedule</th><th>Runtime</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div class="reco">
+      <h3>⭐ Recommended Plan — ${d.recommended.algorithm.replace('_',' ')}</h3>
+      <p>${d.recommended.speed_knots} knots · ${d.recommended.fuel_type} · ${d.recommended.fuel_tons} t fuel · ₹${d.recommended.cost.toLocaleString()} · ${d.recommended.emissions_tons} t CO₂</p>
+      <ul>${d.why_recommended.map(r=>`<li>${r}</li>`).join("")}</ul>
+    </div>
+  `;
+}
+
+async function doScenario(){
+  if(!lastOptimizeInput){ alert("Run Optimize once first so there is a baseline to compare against."); return; }
+  const body = {
+    ...lastOptimizeInput,
+    fuel_price_change_pct: parseFloat(document.getElementById("s-fuelprice").value),
+    cargo_change_pct: parseFloat(document.getElementById("s-cargo").value),
+    speed_override_knots: document.getElementById("s-speed").value ? parseFloat(document.getElementById("s-speed").value) : null,
+  };
+  const res = await fetch(`${API}/api/scenario`, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
+  const d = await res.json();
+  const arrow = v => v>0 ? `<span style="color:#e15554">▲ ${v}%</span>` : (v<0 ? `<span style="color:#1fa774">▼ ${Math.abs(v)}%</span>` : `<span class="muted">0%</span>`);
+  document.getElementById("scenario-result").innerHTML = `
+    <div class="grid" style="margin-top:18px;">
+      <div class="card kpi"><div class="label">Fuel</div><div class="value">${d.scenario_result.fuel_tons} t</div><div>${arrow(d.delta.fuel_pct)}</div></div>
+      <div class="card kpi"><div class="label">Cost</div><div class="value">₹${d.scenario_result.cost.toLocaleString()}</div><div>${arrow(d.delta.cost_pct)}</div></div>
+      <div class="card kpi"><div class="label">Emissions</div><div class="value">${d.scenario_result.emissions_tons} t</div><div>${arrow(d.delta.emissions_pct)}</div></div>
+      <div class="card kpi"><div class="label">Schedule</div><div class="value" style="font-size:18px;">${d.scenario_result.schedule_met ? '✅ On time' : '❌ Late'}</div></div>
+    </div>
+    <div class="note">Compared against baseline: ${d.baseline.speed_knots} kn, ${d.baseline.fuel_type}, ${d.baseline.fuel_tons} t fuel, ₹${d.baseline.cost.toLocaleString()}.</div>
+  `;
+}
+
+loadVessels();
+</script>
+</body>
+</html>
