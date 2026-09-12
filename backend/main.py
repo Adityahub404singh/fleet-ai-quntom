@@ -13,6 +13,9 @@ Endpoints:
     POST /api/scenario
     GET  /api/explain
 """
+import os
+import sys
+import subprocess
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -21,9 +24,6 @@ from typing import Optional
 import time
 
 from database import init_db, get_db, Vessel, Voyage, PredictionLog, OptimizationRun
-from ml.predict import predict_fuel, get_feature_importance
-from optimization.classical import run_classical
-from optimization.quantum_inspired import run_quantum_inspired
 from config import FUEL_PRICE, EMISSION_FACTOR, LIFECYCLE_FACTOR
 
 app = FastAPI(title="QuantumFleet AI", version="1.0")
@@ -35,10 +35,36 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+HERE = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(HERE, "data", "fuel_model.joblib")
+CSV_PATH = os.path.join(HERE, "data", "synthetic_voyages.csv")
+
+
+def _bootstrap_if_needed():
+    """
+    First-boot setup for a fresh deploy (e.g. Render): generate the synthetic
+    dataset, train the model, and seed sample vessels — all automatically,
+    so there is nothing to run manually on the server.
+    """
+    if not os.path.exists(CSV_PATH):
+        subprocess.run([sys.executable, os.path.join(HERE, "ml", "generate_data.py")], check=True, cwd=HERE)
+    if not os.path.exists(MODEL_PATH):
+        subprocess.run([sys.executable, os.path.join(HERE, "ml", "train_model.py")], check=True, cwd=HERE)
+    init_db()
+    db = next(get_db())
+    if db.query(Vessel).count() == 0:
+        subprocess.run([sys.executable, os.path.join(HERE, "seed_data.py")], check=True, cwd=HERE)
+    db.close()
+
 
 @app.on_event("startup")
 def startup():
-    init_db()
+    _bootstrap_if_needed()
+    # Import AFTER bootstrap, so the model file is guaranteed to exist
+    global predict_fuel, get_feature_importance, run_classical, run_quantum_inspired
+    from ml.predict import predict_fuel, get_feature_importance
+    from optimization.classical import run_classical
+    from optimization.quantum_inspired import run_quantum_inspired
 
 
 # ---------------------------------------------------------------- Schemas
